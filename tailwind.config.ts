@@ -15,5 +15,6 @@ const config: Config = {
     },
   },
   plugins: [],
+  darkMode: 'class', // This allows us to manually control dark mode, but we won't use it
 };
 export default config;

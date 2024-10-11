@@ -7,12 +7,7 @@
   --foreground: #171717;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Remove the @media (prefers-color-scheme: dark) block */
 
 body {
   color: var(--foreground);
@@ -24,4 +19,113 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+.input-like-dropdown {
+    padding: 10px; /* Match the padding of other input fields */
+    border: 2px solid #ccc; /* Light border color */
+    border-radius: 5px; /* Rounded corners */
+    background-color: transparent; /* Make background transparent */
+    color: #333; /* Text color */
+    font-size: 16px; /* Font size */
+    width: 100%; /* Full width */
+    height: 40px; /* Set a fixed height to match other fields */
+    line-height: 40px; /* Set line height equal to height for vertical centering */
+    box-shadow: none; /* Remove shadow for a flat look */
+    transition: border-color 0.3s; /* Smooth transition */
+    appearance: none; /* Remove default dropdown arrow */
+}
+
+/* Remove default styling for select elements */
+.input-like-dropdown::-ms-expand {
+    display: none; /* Hide the default dropdown arrow in IE */
+}
+
+.input-like-dropdown:focus {
+    border-color: #007BFF; /* Change border color on focus */
+    outline: none; /* Remove default outline */
+}
+
+/* Custom styles for React Datepicker */
+.react-datepicker {
+    font-family: Arial, Helvetica, sans-serif; /* Change font if needed */
+}
+
+.react-datepicker__input-container input {
+    color: #333; /* Text color */
+}
+
+.react-datepicker__input-container input::placeholder {
+    color: #aaa; /* Placeholder text color */
+    opacity: 1; /* Ensure the placeholder is fully opaque */
+}
+
+.react-datepicker__header {
+    background-color: #007BFF; /* Header background color */
+    color: white; /* Header text color */
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+    background-color: #0056b3; /* Selected day background color */
+    color: white; /* Selected day text color */
+}
+
+.react-datepicker__day:hover {
+    background-color: #e0e0e0; /* Hover effect for days */
+}
+
+.react-datepicker__triangle {
+    display: none; /* Hide the triangle */
+}
+
+/* Styles for the dropdown */
+.dropdown-input {
+    padding: 10px; /* Match the padding of other input fields */
+    border: 1px solid #ccc; /* Change border width to 1px */
+    border-radius: 5px; /* Rounded corners */
+    background-color: #fff; /* Set a solid background color */
+    color: #333; /* Text color */
+    font-size: 16px; /* Font size */
+    width: 100%; /* Full width */
+    height: 40px; /* Set a fixed height to match other fields */
+    line-height: 40px; /* Set line height equal to height for vertical centering */
+    box-shadow: none; /* Remove shadow for a flat look */
+    transition: border-color 0.3s; /* Smooth transition */
+    opacity: 1; /* Set opacity to 1 for full visibility */
+}
+
+.dropdown-input:focus {
+    border-color: #007BFF; /* Change border color on focus */
+    outline: none; /* Remove default outline */
+}
+
+/* Styles for the DatePicker */
+.react-datepicker-wrapper {
+    width: 100%; /* Ensure the wrapper takes full width */
+}
+
+.datepicker-input {
+    padding: 10px; /* Match the padding of other input fields */
+    border: 1px solid #ccc; /* Change border width to 1px for consistency */
+    border-radius: 5px; /* Rounded corners */
+    background-color: transparent; /* Make background transparent */
+    color: #333; /* Text color */
+    font-size: 16px; /* Font size */
+    width: 100%; /* Full width */
+    height: 40px; /* Set a fixed height to match other fields */
+    line-height: 40px; /* Set line height equal to height for vertical centering */
+    box-shadow: none; /* Remove shadow for a flat look */
+    transition: border-color 0.3s; /* Smooth transition */
+    opacity: 1; /* Set opacity to 1 for full visibility */
+}
+
+.datepicker-input:focus {
+    border-color: #007BFF; /* Change border color on focus */
+    outline: none; /* Remove default outline */
+}
+
+/* Custom CSS for SelectValue placeholder color */
+.select-placeholder {
+    color: #6b7280; /* Tailwind's gray-500 */
 }
