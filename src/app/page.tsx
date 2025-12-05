@@ -9,7 +9,7 @@ export default function Home() {
             Sistem Informasi Klinik
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            MVP - SATUSEHAT Ready
+            Masuk sebagai?
           </p>
         </div>
         
