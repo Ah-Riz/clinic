@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node tests/run-all.mjs",
+    "test:rls": "node tests/api-rls.mjs",
+    "test:rpc": "node tests/rpc-workflows.mjs",
+    "test:e2e": "node tests/workflow-e2e.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
