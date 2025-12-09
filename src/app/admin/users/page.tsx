@@ -64,7 +64,7 @@ export default function AdminUsersPage() {
         roleMap[r.staff_id].push(r.role);
       });
 
-      const staffWithRoles = (staffData ?? []).map((s: any) => ({
+      const staffWithRoles = (staffData ?? []).map((s) => ({
         ...s,
         roles: roleMap[s.id] || [],
       }));
