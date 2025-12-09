@@ -384,8 +384,9 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
       setActionMessage(sendToPharmacy ? "Kunjungan dikirim ke farmasi." : "Kunjungan selesai tanpa farmasi.");
       await loadVisit();
       setTimeout(() => router.push("/doctor/queue"), 1200);
-    } catch (err: any) {
-      setActionError(err.message || "Gagal menyimpan data kunjungan.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal menyimpan data kunjungan.';
+      setActionError(message);
     } finally {
       setSubmitting(false);
     }
