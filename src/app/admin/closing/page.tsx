@@ -95,34 +95,13 @@ export default function AdminClosingPage() {
     setClosingMessage(null);
 
     try {
-      // 1. Expire all waiting doctor queue entries
-      const { error: doctorError } = await supabase
-        .from('doctor_queue')
-        .update({ status: 'expired' })
-        .eq('queue_date', today)
-        .in('status', ['waiting', 'called']);
+      const { data, error } = await supabase.rpc('emr_admin_close_day', {
+        p_target_date: today,
+        p_device_id: ADMIN_DEVICE_ID,
+      });
 
-      if (doctorError) throw doctorError;
+      if (error) throw error;
 
-      // 2. Expire all waiting pharmacy queue entries
-      const { error: pharmacyError } = await supabase
-        .from('pharmacy_queue')
-        .update({ status: 'expired' })
-        .eq('queue_date', today)
-        .in('status', ['waiting', 'processing']);
-
-      if (pharmacyError) throw pharmacyError;
-
-      // 3. Mark incomplete visits as expired
-      const { error: visitsError } = await supabase
-        .from('visits')
-        .update({ status: 'expired', closed_at: new Date().toISOString() })
-        .eq('queue_date', today)
-        .not('status', 'in', '("completed","expired")');
-
-      if (visitsError) throw visitsError;
-
-      // 4. Log the closing action
       await supabase.from('staff_activity').insert({
         user_id: user?.id,
         role: 'admin',
@@ -132,17 +111,18 @@ export default function AdminClosingPage() {
           date: today,
           summary: {
             visits_closed: summary.pendingVisits,
-            doctor_queue_expired: summary.doctorQueueWaiting + summary.doctorQueueCalled,
-            pharmacy_queue_expired: summary.pharmacyQueueWaiting + summary.pharmacyQueueProcessing,
+            doctor_queue_cleared: summary.doctorQueueWaiting + summary.doctorQueueCalled,
+            pharmacy_queue_cleared: summary.pharmacyQueueWaiting + summary.pharmacyQueueProcessing,
+            rpc_result: data ?? null,
           },
         },
       });
 
-      setClosingMessage('✅ Penutupan harian berhasil! Semua antrian dan kunjungan tertunda telah ditandai kedaluwarsa.');
+      setClosingMessage('✅ Penutupan harian berhasil! Semua antrian dan kunjungan tertunda telah ditangani oleh sistem.');
       setConfirmClose(false);
       loadSummary();
     } catch (err: any) {
-      setClosingMessage(`❌ Error: ${err.message}`);
+      setClosingMessage(`❌ Error: ${err.message ?? 'Gagal melakukan penutupan harian.'}`);
     } finally {
       setClosing(false);
     }
@@ -154,6 +134,47 @@ export default function AdminClosingPage() {
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
+  }
+
+  function downloadClosingCsv() {
+    if (!summary) return;
+
+    const header = [
+      'date',
+      'totalVisits',
+      'completedVisits',
+      'pendingVisits',
+      'doctorQueueWaiting',
+      'doctorQueueCalled',
+      'pharmacyQueueWaiting',
+      'pharmacyQueueProcessing',
+      'totalRevenue',
+      'paymentCount',
+    ];
+
+    const row = [
+      today,
+      summary.totalVisits.toString(),
+      summary.completedVisits.toString(),
+      summary.pendingVisits.toString(),
+      summary.doctorQueueWaiting.toString(),
+      summary.doctorQueueCalled.toString(),
+      summary.pharmacyQueueWaiting.toString(),
+      summary.pharmacyQueueProcessing.toString(),
+      summary.totalRevenue.toString(),
+      summary.paymentCount.toString(),
+    ];
+
+    const csv = `${header.join(',')}\n${row.join(',')}`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `closing-${today}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   const hasPendingItems = summary && (
@@ -319,6 +340,13 @@ export default function AdminClosingPage() {
                       {closing ? 'Memproses...' : 'Ya, Tutup Sekarang'}
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={downloadClosingCsv}
+                    className="mt-4 w-full rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  >
+                    Download CSV Ringkasan Hari Ini
+                  </button>
                 </div>
               )}
             </div>

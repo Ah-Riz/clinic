@@ -3,6 +3,11 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 function hexToBytes(hex: string): Uint8Array {
   if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length % 2 !== 0) {
     throw new Error("invalid-hex");
@@ -31,6 +36,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
+      ...corsHeaders,
       "content-type": "application/json",
       "cache-control": "no-store",
     },
@@ -39,6 +45,10 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 serve(async (req) => {
   try {
+    if (req.method === "OPTIONS") {
+      return new Response("ok", { headers: corsHeaders });
+    }
+
     if (req.method !== "POST") {
       return jsonResponse({ error: "method_not_allowed" }, 405);
     }
