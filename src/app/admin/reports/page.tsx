@@ -179,6 +179,42 @@ export default function AdminReportsPage() {
     });
   }
 
+  function downloadCsv() {
+    if (summaries.length === 0) {
+      return;
+    }
+
+    const header = [
+      'date',
+      'totalPatients',
+      'totalVisits',
+      'completedVisits',
+      'prescriptionsFilled',
+      'totalRevenue',
+    ];
+
+    const rows = summaries.map((s) => [
+      s.date,
+      s.totalPatients.toString(),
+      s.totalVisits.toString(),
+      s.completedVisits.toString(),
+      s.prescriptionsFilled.toString(),
+      s.totalRevenue.toString(),
+    ]);
+
+    const csvLines = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvLines], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `clinic-report-${startDate}_to_${endDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -255,12 +291,21 @@ export default function AdminReportsPage() {
               className="mt-1 block rounded-lg border border-slate-200 px-3 py-2 text-sm"
             />
           </div>
-          <button
-            onClick={loadReports}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-          >
-            Terapkan
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={loadReports}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              Terapkan
+            </button>
+            <button
+              type="button"
+              onClick={downloadCsv}
+              className="rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Download CSV
+            </button>
+          </div>
         </div>
 
         {/* Period Totals */}

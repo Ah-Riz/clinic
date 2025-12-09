@@ -258,6 +258,30 @@ export default function AdminInventoryPage() {
     return expiry <= threeMonths && b.quantity > 0;
   });
 
+  function downloadLowStockCsv() {
+    if (lowStockMedicines.length === 0) return;
+
+    const header = ['medicineId', 'name', 'unit', 'currentStock', 'minThreshold'];
+    const rows = lowStockMedicines.map((m) => [
+      m.id,
+      m.name,
+      m.unit || '',
+      (m.total_stock || 0).toString(),
+      (m.low_stock_threshold || 10).toString(),
+    ]);
+
+    const csvLines = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvLines], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'low-stock-medicines.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -502,6 +526,16 @@ export default function AdminInventoryPage() {
 
             {activeTab === 'low-stock' && (
               <div className="rounded-xl bg-white shadow overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold text-slate-800">Daftar Stok Rendah</h2>
+                  <button
+                    type="button"
+                    onClick={downloadLowStockCsv}
+                    className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                  >
+                    Download CSV
+                  </button>
+                </div>
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>

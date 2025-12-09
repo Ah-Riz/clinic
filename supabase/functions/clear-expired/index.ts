@@ -23,43 +23,34 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const now = new Date().toISOString();
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase.rpc("emr_admin_clear_expired", {
+      p_device_id: "ADMIN-CRON-001",
+    });
 
-    // Clear expired doctor queue entries
-    const { data: doctorResult, error: doctorError } = await supabase
-      .from("doctor_queue")
-      .update({ status: "cleared" })
-      .in("status", ["waiting", "called"])
-      .lte("expires_at", now)
-      .select("id");
-
-    if (doctorError) {
-      console.error("Error clearing doctor queue:", doctorError);
-    }
-
-    // Clear stale pharmacy queue entries (older than 2 hours)
-    const { data: pharmacyResult, error: pharmacyError } = await supabase
-      .from("pharmacy_queue")
-      .update({ status: "cleared" })
-      .in("status", ["waiting", "processing"])
-      .lte("created_at", twoHoursAgo)
-      .select("id");
-
-    if (pharmacyError) {
-      console.error("Error clearing pharmacy queue:", pharmacyError);
+    if (error) {
+      console.error("Error running emr_admin_clear_expired:", error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: error.message ?? "RPC error",
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        },
+      );
     }
 
     const result = {
       success: true,
-      timestamp: now,
-      cleared: {
-        doctor_queue: doctorResult?.length ?? 0,
-        pharmacy_queue: pharmacyResult?.length ?? 0,
-      },
+      timestamp: new Date().toISOString(),
+      rpc_result: data,
     };
 
-    console.log("Cleared expired entries:", result);
+    console.log("emr_admin_clear_expired result:", result);
 
     return new Response(JSON.stringify(result), {
       status: 200,
