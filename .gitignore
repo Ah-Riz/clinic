@@ -47,3 +47,8 @@ next-env.d.ts
 **/*.md
 !README.md
 !**/README.md
+
+# test files and results
+/tests/
+test-results/
+*.test.log
