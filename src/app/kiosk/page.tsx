@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import LoginForm from '@/components/LoginForm';
 import { supabase } from '@/lib/supabaseClient';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Input, TextArea, Select } from '@/components/ui/Input';
+import { Alert, Loading } from '@/components/ui/Alert';
+import Layout from '@/components/ui/Layout';
 
 export default function KioskPage() {
   const { user, loading } = useAuth();
@@ -20,74 +25,102 @@ export default function KioskPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-xl">Memuat...</div>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
+        <Loading size="lg" text="Memuat aplikasi..." />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-teal-100">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
-          <div className="text-center mb-6">
-            <div className="text-6xl mb-4">🏥</div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Kiosk Pendaftaran
-            </h1>
-            <p className="text-gray-600">
-              Login menggunakan akun kiosk
-            </p>
-          </div>
-          <LoginForm role="kiosk" />
+      <Layout title="Login Kiosk" subtitle="Akses sistem pendaftaran pasien">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card variant="elevated" className="max-w-md w-full">
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Login Kiosk Diperlukan
+              </h2>
+              <p className="text-gray-600">
+                Silakan masuk untuk mengakses pendaftaran pasien
+              </p>
+            </div>
+            <LoginForm role="kiosk" />
+          </Card>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (registrationComplete && queueNumber) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 to-teal-100">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
-          <div className="text-6xl mb-4">✅</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Pendaftaran Berhasil!
-          </h2>
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
-            <p className="text-gray-600 mb-2">Nomor Antrian Anda</p>
-            <div className="text-6xl font-bold text-blue-600">
-              {queueNumber}
+      <Layout title="Pendaftaran Selesai" subtitle="Nomor antrian Anda telah dibuat">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card variant="elevated" className="max-w-md w-full text-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-          </div>
-          <p className="text-gray-600 mb-6">
-            Silakan menunggu. Anda akan dipanggil oleh dokter.
-          </p>
-          <button
-            onClick={() => {
-              setRegistrationComplete(false);
-              setQueueNumber(null);
-            }}
-            className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-          >
-            Daftar Pasien Baru
-          </button>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Pendaftaran Berhasil! 🎉
+            </h2>
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-8 mb-6">
+              <p className="text-sm font-medium text-gray-600 mb-3">Nomor Antrian Anda</p>
+              <div className="text-7xl font-bold text-blue-600">
+                {queueNumber.toString().padStart(3, '0')}
+              </div>
+            </div>
+            <Alert type="info" className="mb-6">
+              Silakan menunggu di ruang tunggu. Anda akan dipanggil sesuai nomor antrian.
+            </Alert>
+            <Button
+              onClick={() => {
+                setRegistrationComplete(false);
+                setQueueNumber(null);
+                setNik('');
+                setFullName('');
+                setDob('');
+                setSex('');
+                setPhone('');
+                setAddress('');
+              }}
+              variant="primary"
+              size="lg"
+              fullWidth
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              }
+            >
+              Daftarkan Pasien Lain
+            </Button>
+          </Card>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 p-6">
+    <Layout title="Pendaftaran Pasien" subtitle="Lengkapi data pasien untuk membuat nomor antrian" showBack>
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            Formulir Pendaftaran Pasien
-          </h1>
+        <Card variant="elevated">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Formulir Pendaftaran Pasien
+            </h2>
+            <p className="text-gray-600">Lengkapi semua field yang wajib diisi</p>
+          </div>
           
           {error && (
-            <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
+            <Alert type="error" className="mb-6" dismissible onDismiss={() => setError(null)}>
               {error}
-            </div>
+            </Alert>
           )}
 
           <form
@@ -156,111 +189,104 @@ export default function KioskPage() {
               }
             }}
           >
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                NIK (Nomor Induk Kependudukan) *
-              </label>
-              <input
-                type="text"
-                maxLength={16}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="16 digit NIK"
-                value={nik}
-                onChange={(e) => setNik(e.target.value.replace(/\D/g, ''))}
-                required
-              />
-            </div>
+            <Input
+              label="NIK (Nomor Induk Kependudukan)"
+              type="text"
+              maxLength={16}
+              placeholder="16 digit NIK"
+              value={nik}
+              onChange={(e) => setNik(e.target.value.replace(/\D/g, ''))}
+              required
+              helper="Masukkan 16 digit NIK sesuai KTP"
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                </svg>
+              }
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama Lengkap *
-              </label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Nama sesuai KTP"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
-            </div>
+            <Input
+              label="Nama Lengkap"
+              type="text"
+              placeholder="Nama sesuai KTP"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              }
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tanggal Lahir *
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jenis Kelamin *
-                </label>
-                <select
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  value={sex}
-                  onChange={(e) => setSex(e.target.value)}
-                  required
-                >
-                  <option value="">Pilih</option>
-                  <option value="male">Laki-laki</option>
-                  <option value="female">Perempuan</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nomor Telepon
-              </label>
-              <input
-                type="tel"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="08xxxxxxxxxx"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+              <Input
+                label="Tanggal Lahir"
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                required
               />
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Alamat Lengkap *
-              </label>
-              <textarea
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Alamat sesuai KTP"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
+              <Select
+                label="Jenis Kelamin"
+                value={sex}
+                onChange={(e) => setSex(e.target.value)}
+                options={[
+                  { value: 'male', label: 'Laki-laki' },
+                  { value: 'female', label: 'Perempuan' },
+                ]}
+                placeholder="Pilih jenis kelamin"
                 required
               />
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                <strong>Catatan:</strong> Data NIK dan alamat akan dienkripsi untuk privasi Anda.
-              </p>
-            </div>
+            <Input
+              label="Nomor Telepon"
+              type="tel"
+              placeholder="08xxxxxxxxxx"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              helper="Contoh: 081234567890"
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              }
+            />
 
-            <button
+            <TextArea
+              label="Alamat Lengkap"
+              rows={3}
+              placeholder="Alamat sesuai KTP"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+            />
+
+            <Alert type="warning">
+              <strong>Catatan Privasi:</strong> Data NIK dan alamat akan dienkripsi untuk melindungi privasi Anda.
+            </Alert>
+
+            <Button
               type="submit"
-              disabled={submitting}
-              className={`w-full py-4 text-white rounded-lg font-medium text-lg transition-colors ${
-                submitting ? 'bg-green-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-              }`}
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={submitting}
+              icon={
+                !submitting && (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )
+              }
             >
-              {submitting ? 'Memproses...' : 'Daftar Sekarang'}
-            </button>
+              {submitting ? 'Memproses Pendaftaran...' : 'Daftar Sekarang'}
+            </Button>
           </form>
-        </div>
+        </Card>
       </div>
-    </div>
+    </Layout>
   );
 }

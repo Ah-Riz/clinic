@@ -1,109 +1,189 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
+import Layout from '@/components/ui/Layout';
 
 const PHARMACY_DEVICE_ID = process.env.NEXT_PUBLIC_PHARMACY_DEVICE_ID ?? 'PHARMACY-001';
 
 export default function PharmacyPage() {
   const { user, loading, signOut } = useAuth();
+  const router = useRouter();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-xl">Memuat...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/pharmacy/login');
+    }
+  }, [loading, user, router]);
 
-  if (!user) {
+  if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
-          <div className="text-6xl mb-4">💊</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Panel Farmasi
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Silakan login untuk mengakses panel farmasi
-          </p>
-          <Link
-            href="/pharmacy/login"
-            className="w-full inline-block py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Login Farmasi
-          </Link>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <section className="rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 p-6 text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-blue-100">Panel Farmasi</p>
-              <h1 className="mt-2 text-3xl font-semibold">Kelola resep dan pembayaran</h1>
-              <p className="mt-3 max-w-3xl text-blue-50">
-                Proses resep dari dokter, dispensi obat dengan sistem FEFO, dan terima pembayaran tunai.
-              </p>
+    <Layout title="Dashboard Farmasi" subtitle="Penyiapan obat dan proses pembayaran">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Quick Stats */}
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xl">📝</span>
+              <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Menunggu</span>
             </div>
-            <button
-              onClick={() => signOut()}
-              className="rounded-lg bg-white/20 px-4 py-2 text-sm font-medium hover:bg-white/30 transition-colors"
-            >
-              Logout
-            </button>
+            <h3 className="text-2xl font-bold text-gray-900">8</h3>
+            <p className="text-sm text-gray-600">Resep Menunggu</p>
           </div>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="rounded-lg bg-white/20 px-3 py-1 text-sm">
-              Device: {PHARMACY_DEVICE_ID}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xl">💊</span>
+              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Proses</span>
             </div>
-            <Link
-              href="/pharmacy/queue"
-              className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
-            >
-              Buka Antrian Resep
-            </Link>
+            <h3 className="text-2xl font-bold text-gray-900">3</h3>
+            <p className="text-sm text-gray-600">Sedang Disiapkan</p>
           </div>
-        </section>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xl">✅</span>
+              <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">Hari Ini</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">42</h3>
+            <p className="text-sm text-gray-600">Pesanan Selesai</p>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-3xl">💰</span>
+              <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-full">Pendapatan</span>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">Rp 3,2jt</h3>
+            <p className="text-sm text-gray-600">Penjualan Hari Ini</p>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <div className="rounded-xl bg-white p-6 shadow">
-            <p className="text-sm uppercase tracking-wide text-slate-400">Alur Utama</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">Antrian Resep</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Lihat daftar resep masuk dari dokter, mulai proses, dan dispensi obat.
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-6 text-white shadow-lg">
+            <h2 className="text-2xl font-bold mb-3">Manajemen Farmasi</h2>
+            <p className="text-purple-50 mb-4">
+              Proses resep dari dokter dan kelola inventaris obat secara efisien
             </p>
-            <Link
-              href="/pharmacy/queue"
-              className="mt-4 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
-              Buka Antrian →
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/pharmacy/queue"
+                className="inline-flex items-center px-4 py-2 bg-white text-purple-600 rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Proses Antrian
+              </Link>
+              <span className="inline-flex items-center px-3 py-2 bg-white/20 rounded-lg text-sm">
+                Perangkat: {PHARMACY_DEVICE_ID}
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-xl bg-white p-6 shadow">
-            <p className="text-sm uppercase tracking-wide text-slate-400">Panduan</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">Alur Kerja</h2>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li>• Resep masuk otomatis dari dokter</li>
-              <li>• Klik "Proses" untuk mulai dispensi</li>
-              <li>• Pilih batch obat (FEFO - First Expiry First Out)</li>
-              <li>• Terima pembayaran tunai</li>
-              <li>• Selesaikan kunjungan</li>
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Aksi Cepat</h3>
+            <div className="space-y-3">
+              <Link href="/pharmacy/queue" className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div>
+                  <h4 className="font-semibold text-gray-900">Antrian Resep</h4>
+                  <p className="text-sm text-gray-600">Lihat dan proses resep yang menunggu</p>
+                </div>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+              <Link href="/pharmacy/queue" className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div>
+                  <h4 className="font-semibold text-gray-900">Inventaris Obat</h4>
+                  <p className="text-sm text-gray-600">Cek level stok dan tanggal kedaluwarsa</p>
+                </div>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+              <button
+                onClick={() => signOut()}
+                className="w-full flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors text-left"
+              >
+                <div>
+                  <h4 className="font-semibold text-red-900">Keluar</h4>
+                  <p className="text-sm text-red-600">Akhiri sesi Anda saat ini</p>
+                </div>
+                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Side Panel */}
+        <div className="space-y-6">
+          {/* Inventory Alert */}
+          <div className="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Peringatan Inventaris
+            </h3>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <span className="text-yellow-600 mr-2">•</span>
+                Paracetamol 500mg - Stok rendah (sisa 15)
+              </li>
+              <li className="flex items-start">
+                <span className="text-yellow-600 mr-2">•</span>
+                Amoxicillin kedaluwarsa dalam 30 hari (Batch #A234)
+              </li>
+              <li className="flex items-start">
+                <span className="text-yellow-600 mr-2">•</span>
+                Vitamin C habis - perlu pemesanan ulang
+              </li>
+            </ul>
+          </div>
+
+          {/* Processing Tips */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Panduan Pemrosesan</h3>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mr-2 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Gunakan sistem FEFO untuk pemilihan obat
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mr-2 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Verifikasi identitas pasien sebelum penyerahan
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mr-2 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Periksa ulang dosis dan instruksi
+              </li>
+              <li className="flex items-start">
+                <svg className="w-4 h-4 mr-2 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Proses pembayaran sebelum penyerahan obat
+              </li>
             </ul>
           </div>
         </div>
-
-        <div className="text-center">
-          <Link href="/" className="text-sm text-slate-500 hover:text-slate-700">
-            ← Kembali ke halaman utama
-          </Link>
-        </div>
       </div>
-    </div>
+    </Layout>
   );
 }

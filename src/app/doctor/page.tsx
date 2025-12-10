@@ -1,135 +1,146 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
+import Layout from '@/components/ui/Layout';
 
 const DOCTOR_DEVICE_ID = process.env.NEXT_PUBLIC_DOCTOR_DEVICE_ID ?? 'DOCTOR-001';
 
-const quickLinks = [
-  {
-    title: 'Kelola Antrian',
-    description: 'Lihat daftar pasien, panggil berikutnya, atau registrasi manual.',
-    href: '/doctor/queue',
-    cta: 'Buka Antrian',
-  },
-  {
-    title: 'Kunjungan Aktif',
-    description: 'Akses detail kunjungan melalui tombol “Detail” dari halaman antrian.',
-    href: '/doctor/queue',
-    cta: 'Masuk ke Kunjungan',
-    subtle: true,
-  },
-];
+export default function DoctorPage() {
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
 
-const checklist = [
-  'Masuk menggunakan akun dokter yang terdaftar di Supabase Auth.',
-  'Pastikan perangkat ini menggunakan device ID resmi klinik.',
-  'Pantau antrian secara berkala dan panggil pasien tepat waktu.',
-  'Selesaikan catatan medis dan kirim resep ke farmasi setelah konsultasi.',
-];
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/doctor/login');
+    }
+  }, [loading, user, router]);
 
-const securityNotes = [
-  'Device gating aktif. Semua RPC memerlukan `x-device-id` yang cocok dengan perangkat dokter.',
-  'Data alamat pasien tersimpan dalam bentuk terenkripsi; jangan menyalin plaintext ke catatan bebas.',
-  'Gunakan kanal resmi untuk meminta bantuan admin saat terjadi gangguan.',
-];
-
-export default function Page() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
+  if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="text-xl">Memuat...</div>
       </div>
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-100">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
-          <div className="text-6xl mb-4">👩‍⚕️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Panel Dokter
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Silakan login untuk mengakses panel dokter
-          </p>
-          <Link
-            href="/doctor/login"
-            className="w-full inline-block py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
-          >
-            Login Dokter
-          </Link>
+  return (
+    <Layout title="Dashboard Dokter" subtitle="Ringkasan antrian dan kunjungan hari ini">
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-3xl">👥</span>
+            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Menunggu</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">12</h3>
+          <p className="text-sm text-gray-600">Pasien dalam Antrian</p>
+        </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-3xl">✅</span>
+            <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">Hari Ini</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">28</h3>
+          <p className="text-sm text-gray-600">Kunjungan Selesai</p>
+        </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-3xl">⏱️</span>
+            <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-full">Rata-rata</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">15 menit</h3>
+          <p className="text-sm text-gray-600">Per Konsultasi</p>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <section className="rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 p-6 text-white shadow-lg">
-          <p className="text-sm font-medium uppercase tracking-wide text-emerald-100">Panel Dokter</p>
-          <h1 className="mt-2 text-3xl font-semibold">Kelola konsultasi secara terstruktur</h1>
-          <p className="mt-3 max-w-3xl text-emerald-50">
-            Mulai hari dengan memeriksa antrian aktif, panggil pasien yang menunggu, dan dokumentasikan hasil kunjungan secara
-            lengkap sebelum mengirim ke farmasi.
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-emerald-50">
-            <span className="text-xs uppercase tracking-widest text-emerald-100">Device saat ini</span>
-            <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold">{DOCTOR_DEVICE_ID}</span>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/doctor/queue"
-              className="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-emerald-700 shadow hover:bg-emerald-50"
-            >
-              Buka Antrian
-            </Link>
-            <span className="text-sm text-emerald-100">Atau pantau notifikasi realtime saat pengembangan M5 selesai.</span>
-          </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2">
-          {quickLinks.map((link) => (
-            <div key={link.title} className="rounded-xl bg-white p-5 shadow">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Alur {link.subtle ? 'lanjutan' : 'utama'}</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-900">{link.title}</h2>
-              <p className="mt-2 text-sm text-slate-600">{link.description}</p>
-              <Link
-                href={link.href}
-                className={`mt-4 inline-flex items-center text-sm font-semibold ${link.subtle ? 'text-emerald-600' : 'text-emerald-700'}`}
-              >
-                {link.cta} <span className="ml-2">→</span>
-              </Link>
-            </div>
-          ))}
-        </section>
-
-        <section className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl bg-white p-5 shadow">
-            <h3 className="text-lg font-semibold text-slate-900">Panduan singkat shift</h3>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">
-              {checklist.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-xl bg-white p-5 shadow">
-            <h3 className="text-lg font-semibold text-slate-900">Catatan keamanan</h3>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">
-              {securityNotes.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <p className="mt-4 text-xs text-slate-400">
-              Hubungi admin untuk perubahan device ID atau troubleshooting supabase session.
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Banner */}
+        <div className="lg:col-span-2">
+          <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
+            <h2 className="text-2xl font-bold mb-3">Kelola Konsultasi Hari Ini</h2>
+            <p className="text-emerald-50 mb-4">
+              Buka halaman antrian untuk melihat pasien yang menunggu. Panggil pasien berikutnya ketika siap.
             </p>
+            <ul className="text-sm text-emerald-100 mb-4 space-y-1">
+              <li>• Buka halaman antrian untuk melihat pasien yang menunggu</li>
+              <li>• Panggil pasien berikutnya ketika siap</li>
+              <li>• Lengkapi catatan medis sebelum mengirim resep</li>
+            </ul>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/doctor/queue"
+                className="inline-flex items-center px-4 py-2 bg-white text-emerald-600 rounded-lg font-medium hover:shadow-lg transition-all"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Buka Antrian Dokter
+              </Link>
+              <span className="inline-flex items-center px-3 py-2 bg-white/20 rounded-lg text-sm">
+                Perangkat: {DOCTOR_DEVICE_ID}
+              </span>
+            </div>
           </div>
-        </section>
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Aksi Cepat</h3>
+            <div className="space-y-3">
+              <Link href="/doctor/queue" className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div>
+                  <h4 className="font-semibold text-gray-900">Antrian Pasien</h4>
+                  <p className="text-sm text-gray-600">Lihat dan panggil pasien yang menunggu</p>
+                </div>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+              <button
+                onClick={() => signOut()}
+                className="w-full flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors text-left"
+              >
+                <div>
+                  <h4 className="font-semibold text-red-900">Keluar</h4>
+                  <p className="text-sm text-red-600">Akhiri sesi Anda saat ini</p>
+                </div>
+                <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Side Alert */}
+        <div>
+          <div className="bg-yellow-50 rounded-xl p-6 border border-yellow-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Catatan Penting Keamanan
+            </h3>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <span className="text-yellow-600 mr-2">•</span>
+                Gunakan akun dokter pribadi, jangan dibagi
+              </li>
+              <li className="flex items-start">
+                <span className="text-yellow-600 mr-2">•</span>
+                Pastikan bekerja dari perangkat yang sudah disetujui admin
+              </li>
+              <li className="flex items-start">
+                <span className="text-yellow-600 mr-2">•</span>
+                Jangan menyalin alamat lengkap pasien ke catatan bebas
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 }
