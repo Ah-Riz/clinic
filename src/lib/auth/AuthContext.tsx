@@ -54,7 +54,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear all auth data
     await supabase.auth.signOut();
+    
+    // Clear localStorage
+    localStorage.clear();
+    
+    // Clear sessionStorage  
+    sessionStorage.clear();
+    
+    // Clear any cached data
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
+    }
+    
+    // Force page reload to clear all state
+    window.location.href = '/';
   };
 
   return (
