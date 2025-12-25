@@ -41,31 +41,32 @@ export default function RoleProtectedRoute({
       : hasRole(requiredRoles);
 
     if (!hasAccess && userRoles.length > 0) {
-      // User is authenticated but doesn't have required role
+      // User is authenticated but doesn't have required role - redirect immediately to their dashboard
       if (fallbackPath) {
-        router.push(fallbackPath);
+        router.replace(fallbackPath);
       } else {
-        // Redirect to their primary role's dashboard
+        // Redirect to their primary role's dashboard - NEVER home page for authenticated users
         const primaryRole = getPrimaryRole(userRoles);
-        if (primaryRole) {
-          switch (primaryRole) {
-            case 'admin':
-              router.push('/admin');
-              break;
-            case 'doctor':
-              router.push('/doctor');
-              break;
-            case 'pharmacist':
-              router.push('/pharmacy');
-              break;
-            case 'kiosk':
-              router.push('/kiosk');
-              break;
-            default:
-              router.push('/');
-          }
-        } else {
-          router.push('/');
+        switch (primaryRole) {
+          case 'admin':
+            router.replace('/admin');
+            break;
+          case 'doctor':
+            router.replace('/doctor');
+            break;
+          case 'pharmacist':
+            router.replace('/pharmacy');
+            break;
+          case 'kiosk':
+            router.replace('/kiosk');
+            break;
+          default:
+            // If user has roles but none match, redirect to first available dashboard
+            if (userRoles.includes('admin')) router.replace('/admin');
+            else if (userRoles.includes('doctor')) router.replace('/doctor');
+            else if (userRoles.includes('pharmacist')) router.replace('/pharmacy');
+            else if (userRoles.includes('kiosk')) router.replace('/kiosk');
+            else router.replace('/'); // Only if no roles found (shouldn't happen)
         }
       }
     }
@@ -108,64 +109,37 @@ export default function RoleProtectedRoute({
     : hasRole(requiredRoles);
 
   if (!hasAccess) {
-    // Custom unauthorized component
+    // If user has roles but no access, show loading while redirecting
+    if (userRoles.length > 0) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Mengalihkan ke dashboard Anda...</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Custom unauthorized component for users with no roles
     if (customUnauthorized) {
       return <>{customUnauthorized}</>;
     }
 
-    // Default unauthorized page
+    // Default unauthorized page for users with no roles (should login)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-red-500 text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Akses Ditolak</h1>
           <p className="text-gray-600 mb-4">
-            Anda tidak memiliki izin untuk mengakses halaman ini.
+            Anda perlu login untuk mengakses halaman ini.
           </p>
-          <div className="bg-gray-100 rounded-lg p-4 mb-4">
-            <p className="text-sm text-gray-700 mb-2">
-              <strong>Peran yang diperlukan:</strong> {requiredRoles.map(role => ROLE_LABELS[role]).join(requireAll ? ' dan ' : ' atau ')}
-            </p>
-            <p className="text-sm text-gray-700">
-              <strong>Peran Anda:</strong> {userRoles.length > 0 
-                ? userRoles.map(role => ROLE_LABELS[role]).join(', ')
-                : 'Tidak ada peran'
-              }
-            </p>
-          </div>
           <button 
-            onClick={() => router.back()} 
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mr-2"
+            onClick={() => router.push('/')} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Kembali
-          </button>
-          <button 
-            onClick={() => {
-              const primaryRole = getPrimaryRole(userRoles);
-              if (primaryRole) {
-                switch (primaryRole) {
-                  case 'admin':
-                    router.push('/admin');
-                    break;
-                  case 'doctor':
-                    router.push('/doctor');
-                    break;
-                  case 'pharmacist':
-                    router.push('/pharmacy');
-                    break;
-                  case 'kiosk':
-                    router.push('/kiosk');
-                    break;
-                  default:
-                    router.push('/');
-                }
-              } else {
-                router.push('/');
-              }
-            }}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          >
-            Dashboard Saya
+            Kembali ke Beranda
           </button>
         </div>
       </div>
