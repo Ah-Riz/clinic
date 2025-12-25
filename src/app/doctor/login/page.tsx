@@ -3,19 +3,23 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { useRoles } from '@/lib/auth/RolesProvider';
+import { handleLoginRedirect } from '@/lib/auth/loginRedirect';
 import LoginForm from '@/components/LoginForm';
 import Layout from '@/components/ui/Layout';
 import { Card } from '@/components/ui/Card';
 
 export default function DoctorLoginPage() {
   const { user, loading } = useAuth();
+  const { primaryRole, rolesLoading } = useRoles();
   const router = useRouter();
 
   useEffect(() => {
-    if (user && !loading) {
-      router.push('/doctor');
+    if (user && !loading && !rolesLoading) {
+      // Use smart redirect to primary role dashboard
+      handleLoginRedirect(user.id, router);
     }
-  }, [user, loading, router]);
+  }, [user, loading, rolesLoading, router]);
 
   if (loading) {
     return (
@@ -45,8 +49,7 @@ export default function DoctorLoginPage() {
             </p>
           </div>
           <LoginForm 
-            role="doctor" 
-            onSuccess={() => router.push('/doctor')}
+            role="doctor"
           />
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">

@@ -5,7 +5,7 @@ import Link from 'next/link';
 export default function Home() {
   const roleCards = [
     {
-      href: '/kiosk',
+      href: '/kiosk/login',
       title: 'Kiosk Pendaftaran',
       description: 'Registrasi pasien dan pencetakan nomor antrian.',
       gradient: 'from-blue-500 to-cyan-500',

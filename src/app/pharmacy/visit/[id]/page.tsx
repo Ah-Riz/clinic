@@ -204,7 +204,7 @@ export default function PharmacyVisitPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  function updateDispenseItem(index: number, field: keyof DispenseItem, value: string | number | boolean) {
+  function updateDispenseItem(index: number, field: keyof DispenseItem, value: string | number | boolean | null) {
     setDispenseItems((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item))
     );
@@ -502,18 +502,25 @@ export default function PharmacyVisitPage({ params }: { params: Promise<{ id: st
                     <div className="col-span-2">
                       <label className="text-xs font-medium text-slate-500">Batch Obat (FEFO)</label>
                       <select
-                        value={item.medicine_id}
+                        value={item.batch_id ?? ''}
                         onChange={(e) => {
-                          const batch = availableBatches.find((b) => b.medicine?.id === e.target.value);
-                          updateDispenseItem(index, 'medicine_id', e.target.value);
-                          updateDispenseItem(index, 'medicine_name', batch?.medicine?.name ?? '');
-                          updateDispenseItem(index, 'batch_id', batch?.id ?? '');
+                          const batch = availableBatches.find((b) => b.id === e.target.value);
+                          if (batch) {
+                            updateDispenseItem(index, 'medicine_id', batch.medicine?.id ?? '');
+                            updateDispenseItem(index, 'medicine_name', batch.medicine?.name ?? '');
+                            updateDispenseItem(index, 'batch_id', batch.id);
+                          } else {
+                            // Clear selection
+                            updateDispenseItem(index, 'medicine_id', '');
+                            updateDispenseItem(index, 'medicine_name', '');
+                            updateDispenseItem(index, 'batch_id', null);
+                          }
                         }}
                         className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                       >
-                        <option value="">-- Pilih Obat --</option>
+                        <option value="">-- Pilih Batch --</option>
                         {availableBatches.map((batch) => (
-                          <option key={batch.id} value={batch.medicine?.id ?? ''}>
+                          <option key={batch.id} value={batch.id}>
                             {batch.medicine?.name} - Batch {batch.batch_no} (Exp: {batch.expiry_date}, Stok: {batch.quantity})
                           </option>
                         ))}

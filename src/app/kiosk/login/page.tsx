@@ -9,7 +9,7 @@ import LoginForm from '@/components/LoginForm';
 import Layout from '@/components/ui/Layout';
 import { Card } from '@/components/ui/Card';
 
-export default function AdminLoginPage() {
+export default function KioskLoginPage() {
   const { user, loading } = useAuth();
   const { primaryRole, rolesLoading } = useRoles();
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function AdminLoginPage() {
 
   if (loading) {
     return (
-      <Layout title="Login Admin" subtitle="Masuk untuk mengakses panel admin">
+      <Layout title="Login Kiosk" subtitle="Akses sistem pendaftaran pasien">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-xl">Memuat...</div>
         </div>
@@ -36,24 +36,24 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <Layout title="Login Admin" subtitle="Masuk untuk mengakses panel admin">
+    <Layout title="Login Kiosk" subtitle="Akses sistem pendaftaran pasien">
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card variant="elevated" className="max-w-md w-full">
           <div className="text-center mb-6">
-            <div className="text-6xl mb-4">⚙️</div>
+            <div className="text-6xl mb-4">📝</div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Login Admin
+              Login Kiosk
             </h1>
             <p className="text-gray-600">
-              Masuk untuk mengakses panel admin
+              Akses sistem pendaftaran pasien
             </p>
           </div>
           <LoginForm 
-            role="admin"
+            role="kiosk"
           />
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500">
-              Gunakan akun admin yang terdaftar
+              Gunakan akun kiosk yang terdaftar
             </p>
           </div>
         </Card>
