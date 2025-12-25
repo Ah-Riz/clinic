@@ -31,20 +31,24 @@ export default function KioskPage() {
     if (!user) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only capture single character keys
-      if (e.key.length === 1) {
+      // Only capture single character keys, ignore if in input field
+      if (e.key.length === 1 && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        console.log('Key captured for logout sequence:', e.key);
         setKeySequence(prev => {
           const newSequence = [...prev, e.key.toLowerCase()].slice(-6);
+          console.log('Current sequence:', newSequence.join(''));
           
           if (keyTimerRef.current) {
             clearTimeout(keyTimerRef.current);
           }
           
           keyTimerRef.current = setTimeout(() => {
+            console.log('Sequence reset due to timeout');
             setKeySequence([]);
           }, 2000);
           
           if (newSequence.join('') === 'logout') {
+            console.log('LOGOUT SEQUENCE DETECTED!');
             setShowLogoutConfirm(true);
             return [];
           }
@@ -54,9 +58,9 @@ export default function KioskPage() {
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
       if (keyTimerRef.current) {
         clearTimeout(keyTimerRef.current);
       }
