@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import LoginForm from '@/components/LoginForm';
 import { supabase } from '@/lib/supabaseClient';
@@ -11,7 +11,7 @@ import { Alert, Loading } from '@/components/ui/Alert';
 import Layout from '@/components/ui/Layout';
 
 export default function KioskPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [queueNumber, setQueueNumber] = useState<number | null>(null);
   const [nik, setNik] = useState('');
@@ -22,6 +22,50 @@ export default function KioskPage() {
   const [address, setAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  // Hidden logout: Type "logout" quickly within 2 seconds
+  const [keySequence, setKeySequence] = useState<string[]>([]);
+  const keyTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only capture single character keys, ignore if in input field
+      if (e.key.length === 1 && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        console.log('Key captured for logout sequence:', e.key);
+        setKeySequence(prev => {
+          const newSequence = [...prev, e.key.toLowerCase()].slice(-6);
+          console.log('Current sequence:', newSequence.join(''));
+          
+          if (keyTimerRef.current) {
+            clearTimeout(keyTimerRef.current);
+          }
+          
+          keyTimerRef.current = setTimeout(() => {
+            console.log('Sequence reset due to timeout');
+            setKeySequence([]);
+          }, 2000);
+          
+          if (newSequence.join('') === 'logout') {
+            console.log('LOGOUT SEQUENCE DETECTED!');
+            setShowLogoutConfirm(true);
+            return [];
+          }
+          
+          return newSequence;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      if (keyTimerRef.current) {
+        clearTimeout(keyTimerRef.current);
+      }
+    };
+  }, [user]);
 
   if (loading) {
     return (
@@ -33,76 +77,142 @@ export default function KioskPage() {
 
   if (!user) {
     return (
-      <Layout title="Login Kiosk" subtitle="Akses sistem pendaftaran pasien">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Card variant="elevated" className="max-w-md w-full">
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+      <>
+        <Layout title="Login Kiosk" subtitle="Akses sistem pendaftaran pasien">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Card variant="elevated" className="max-w-md w-full">
+              <div className="text-center mb-8">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Login Kiosk Diperlukan
+                </h2>
+                <p className="text-gray-600">
+                  Silakan masuk untuk mengakses pendaftaran pasien
+                </p>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Login Kiosk Diperlukan
-              </h2>
-              <p className="text-gray-600">
-                Silakan masuk untuk mengakses pendaftaran pasien
-              </p>
-            </div>
-            <LoginForm role="kiosk" />
-          </Card>
-        </div>
-      </Layout>
+              <LoginForm role="kiosk" />
+            </Card>
+          </div>
+        </Layout>
+        
+        {/* Logout Confirmation Modal */}
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card variant="elevated" className="max-w-sm w-full mx-4">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Keluar Sistem?</h3>
+                <p className="text-sm text-gray-600">Anda akan keluar dari sistem kiosk. Pastikan tidak ada aktivitas yang sedang berlangsung.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => signOut()}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                >
+                  Keluar
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+      </>
     );
   }
 
   if (registrationComplete && queueNumber) {
     return (
-      <Layout title="Pendaftaran Selesai" subtitle="Nomor antrian Anda telah dibuat">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Card variant="elevated" className="max-w-md w-full text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Pendaftaran Berhasil! 🎉
-            </h2>
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-8 mb-6">
-              <p className="text-sm font-medium text-gray-600 mb-3">Nomor Antrian Anda</p>
-              <div className="text-7xl font-bold text-blue-600">
-                {queueNumber.toString().padStart(3, '0')}
-              </div>
-            </div>
-            <Alert type="info" className="mb-6">
-              Silakan menunggu di ruang tunggu. Anda akan dipanggil sesuai nomor antrian.
-            </Alert>
-            <Button
-              onClick={() => {
-                setRegistrationComplete(false);
-                setQueueNumber(null);
-                setNik('');
-                setFullName('');
-                setDob('');
-                setSex('');
-                setPhone('');
-                setAddress('');
-              }}
-              variant="primary"
-              size="lg"
-              fullWidth
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      <>
+        <Layout title="Pendaftaran Selesai" subtitle="Nomor antrian Anda telah dibuat">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Card variant="elevated" className="max-w-md w-full text-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <svg className="w-14 h-14 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
-              }
-            >
-              Daftarkan Pasien Lain
-            </Button>
-          </Card>
-        </div>
-      </Layout>
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Pendaftaran Berhasil! 🎉
+              </h2>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-8 mb-6">
+                <p className="text-sm font-medium text-gray-600 mb-3">Nomor Antrian Anda</p>
+                <div className="text-7xl font-bold text-blue-600">
+                  {queueNumber.toString().padStart(3, '0')}
+                </div>
+              </div>
+              <Alert type="info" className="mb-6">
+                Silakan menunggu di ruang tunggu. Anda akan dipanggil sesuai nomor antrian.
+              </Alert>
+              <Button
+                onClick={() => {
+                  setRegistrationComplete(false);
+                  setQueueNumber(null);
+                  setNik('');
+                  setFullName('');
+                  setDob('');
+                  setSex('');
+                  setPhone('');
+                  setAddress('');
+                }}
+                variant="primary"
+                size="lg"
+                fullWidth
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                }
+              >
+                Daftarkan Pasien Lain
+              </Button>
+            </Card>
+          </div>
+        </Layout>
+
+        {/* Hidden Logout Confirmation Modal - Global */}
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card variant="elevated" className="max-w-sm w-full mx-4">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Keluar Sistem?</h3>
+                <p className="text-sm text-gray-600">Anda akan keluar dari sistem kiosk. Pastikan tidak ada aktivitas yang sedang berlangsung.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => signOut()}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                >
+                  Keluar
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+      </>
     );
   }
 
@@ -287,6 +397,38 @@ export default function KioskPage() {
           </form>
         </Card>
       </div>
+      
+      
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card variant="elevated" className="max-w-sm w-full mx-4">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Keluar Sistem?</h3>
+              <p className="text-sm text-gray-600">Anda akan keluar dari sistem kiosk. Pastikan tidak ada aktivitas yang sedang berlangsung.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => signOut()}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+              >
+                Keluar
+              </button>
+            </div>
+          </Card>
+        </div>
+      )}
     </Layout>
   );
 }

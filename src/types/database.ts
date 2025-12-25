@@ -8,6 +8,56 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      diagnosis_history: {
+        Row: {
+          id: string
+          diagnosis_text: string
+          frequency: number
+          last_used: string
+          is_primary: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['diagnosis_history']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['diagnosis_history']['Insert']>
+      }
+      diagnoses: {
+        Row: {
+          id: string
+          visit_id: string
+          diagnosis_text: string
+          is_primary: boolean
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['diagnoses']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['diagnoses']['Insert']>
+      }
+      clinical_notes: {
+        Row: {
+          id: string
+          visit_id: string
+          anamnesis: string | null
+          therapy: string | null
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['clinical_notes']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['clinical_notes']['Insert']>
+      }
+      vitals: {
+        Row: {
+          id: string
+          visit_id: string
+          systolic: number | null
+          diastolic: number | null
+          heart_rate: number | null
+          temperature: number | null
+          resp_rate: number | null
+          spo2: number | null
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['vitals']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['vitals']['Insert']>
+      }
       patients: {
         Row: {
           id: string
@@ -96,6 +146,37 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['medicine_batches']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['medicine_batches']['Insert']>
+      }
+      prescriptions: {
+        Row: {
+          id: string
+          visit_id: string
+          doctor_notes: string | null
+          prescription_type: 'non_racik' | 'racik'
+          sediaan: string | null
+          additional_info: string | null
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['prescriptions']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['prescriptions']['Insert']>
+      }
+      prescription_lines: {
+        Row: {
+          id: string
+          prescription_id: string
+          parent_prescription_line_id: string | null
+          medicine_id: string | null
+          drug_name: string
+          dosage: string | null
+          frequency: string | null
+          duration: string | null
+          instructions: string | null
+          unit: string | null
+          is_racik_ingredient: boolean
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['prescription_lines']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['prescription_lines']['Insert']>
       }
       doctor_queue: {
         Row: {

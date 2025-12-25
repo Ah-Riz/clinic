@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import RoleProtectedRoute from '@/components/auth/RoleProtectedRoute';
 
 const PHARMACY_DEVICE_ID = process.env.NEXT_PUBLIC_PHARMACY_DEVICE_ID ?? 'PHARMACY-001';
 
@@ -31,6 +32,18 @@ type PrescriptionLine = {
   duration: string | null;
   instructions: string | null;
   medicine_id: string | null;
+  parent_prescription_line_id: string | null;
+  is_racik_ingredient: boolean;
+  unit: string | null;
+};
+
+type PrescriptionData = {
+  id: string;
+  prescription_type: 'non_racik' | 'racik';
+  sediaan: string | null;
+  doctor_notes: string | null;
+  additional_info: string | null;
+  lines: PrescriptionLine[];
 };
 
 type MedicineBatch = {
@@ -62,7 +75,7 @@ export default function PharmacyVisitPage({ params }: { params: Promise<{ id: st
   const supabase = useMemo(() => createSupabaseBrowserClient({ 'x-device-id': PHARMACY_DEVICE_ID }), []);
 
   const [visitInfo, setVisitInfo] = useState<VisitInfo | null>(null);
-  const [prescriptionLines, setPrescriptionLines] = useState<PrescriptionLine[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionData[]>([]);
   const [availableBatches, setAvailableBatches] = useState<MedicineBatch[]>([]);
   const [fetching, setFetching] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -133,13 +146,38 @@ export default function PharmacyVisitPage({ params }: { params: Promise<{ id: st
           queueNumber: queueRes.data?.number ?? null,
           queueStatus: queueRes.data?.status ?? null,
         });
-        const rxData = prescriptionsRes as { lines: PrescriptionLine[] | null; doctorNotes: string | null };
-        setPrescriptionLines((rxData.lines ?? []) as PrescriptionLine[]);
-        setDoctorNote(rxData.doctorNotes || null);
+        // Transform prescription lines to new structure
+        const prescriptionLines = prescriptionsRes.lines || [];
+        const doctorNotes = prescriptionsRes.doctorNotes;
+        
+        // For now, create a single prescription object from the lines
+        // In the future, the database query should be updated to support multiple prescriptions
+        const prescriptionData: PrescriptionData[] = prescriptionLines.length > 0 ? [{
+          id: prescriptionLines[0].prescription_id || 'temp-id',
+          prescription_type: 'non_racik', // Default for existing data
+          sediaan: null,
+          doctor_notes: doctorNotes,
+          additional_info: null,
+          lines: prescriptionLines.map((line: any) => ({
+            id: line.id,
+            drug_name: line.drug_name,
+            dosage: line.dosage,
+            frequency: line.frequency,
+            duration: line.duration,
+            instructions: line.instructions,
+            medicine_id: line.medicine_id,
+            parent_prescription_line_id: null,
+            is_racik_ingredient: false,
+            unit: null
+          }))
+        }] : [];
+        
+        setPrescriptions(prescriptionData);
+        setDoctorNote(doctorNotes || null);
         setAvailableBatches((batchesRes.data ?? []) as unknown as MedicineBatch[]);
 
         // Initialize dispense items from prescription lines
-        const initialDispense = (rxData.lines ?? []).map((line: PrescriptionLine) => ({
+        const initialDispense = prescriptionData.flatMap((p: PrescriptionData) => p.lines).map((line: PrescriptionLine) => ({
           medicine_id: line.medicine_id ?? '',
           medicine_name: line.drug_name ?? '',
           quantity: 1,
@@ -294,7 +332,8 @@ export default function PharmacyVisitPage({ params }: { params: Promise<{ id: st
   const canPay = visitInfo.status === 'dispensed';
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <RoleProtectedRoute requiredRoles={['pharmacist']}>
+      <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div className="flex items-center gap-3 text-sm text-slate-500">
           <Link href="/pharmacy/queue" className="font-medium text-blue-600 hover:underline">
@@ -352,32 +391,79 @@ export default function PharmacyVisitPage({ params }: { params: Promise<{ id: st
         {/* Prescription from Doctor */}
         <section className="rounded-2xl bg-white p-6 shadow">
           <h2 className="text-lg font-semibold text-slate-900">Resep dari Dokter</h2>
-          {prescriptionLines.length === 0 ? (
+          {prescriptions.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">Tidak ada resep untuk kunjungan ini.</p>
           ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b text-slate-500">
-                    <th className="px-3 py-2">Obat</th>
-                    <th className="px-3 py-2">Dosis</th>
-                    <th className="px-3 py-2">Frekuensi</th>
-                    <th className="px-3 py-2">Durasi</th>
-                    <th className="px-3 py-2">Instruksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {prescriptionLines.map((line) => (
-                    <tr key={line.id} className="border-b last:border-0">
-                      <td className="px-3 py-3 font-medium">{line.drug_name ?? '-'}</td>
-                      <td className="px-3 py-3">{line.dosage ?? '-'}</td>
-                      <td className="px-3 py-3">{line.frequency ?? '-'}</td>
-                      <td className="px-3 py-3">{line.duration ?? '-'}</td>
-                      <td className="px-3 py-3">{line.instructions ?? '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-4 space-y-6">
+              {prescriptions.map((prescription) => (
+                <div key={prescription.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">
+                      {prescription.prescription_type === 'racik' ? 'Racikan' : 'Non-Racik'}
+                      {prescription.sediaan && ` - ${prescription.sediaan}`}
+                    </h3>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {prescription.prescription_type === 'racik' ? 'Racik' : 'Regular'}
+                    </span>
+                  </div>
+                  
+                  {prescription.prescription_type === 'racik' ? (
+                    <div className="space-y-3">
+                      <div className="bg-gray-50 p-3 rounded">
+                        <p className="text-sm font-medium text-gray-700">Jenis Sediaan: {prescription.sediaan}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Komposisi:</h4>
+                        <div className="space-y-2">
+                          {prescription.lines.filter(line => line.is_racik_ingredient).map((ingredient) => (
+                            <div key={ingredient.id} className="flex justify-between text-sm">
+                              <span>{ingredient.drug_name}</span>
+                              <span>{ingredient.dosage} {ingredient.unit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {prescription.lines.find(line => !line.is_racik_ingredient) && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm"><strong>Jumlah:</strong> {prescription.lines.find(line => !line.is_racik_ingredient)?.dosage}</p>
+                          <p className="text-sm"><strong>Aturan Pakai:</strong> {prescription.lines.find(line => !line.is_racik_ingredient)?.instructions}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b text-left">
+                            <th className="px-3 py-2 font-medium text-slate-600">Nama Obat</th>
+                            <th className="px-3 py-2 font-medium text-slate-600">Dosis</th>
+                            <th className="px-3 py-2 font-medium text-slate-600">Frekuensi</th>
+                            <th className="px-3 py-2 font-medium text-slate-600">Durasi</th>
+                            <th className="px-3 py-2 font-medium text-slate-600">Instruksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {prescription.lines.map((line: PrescriptionLine) => (
+                            <tr key={line.id} className="border-b last:border-0">
+                              <td className="px-3 py-3 font-medium">{line.drug_name ?? '-'}</td>
+                              <td className="px-3 py-3">{line.dosage ?? '-'}</td>
+                              <td className="px-3 py-3">{line.frequency ?? '-'}</td>
+                              <td className="px-3 py-3">{line.duration ?? '-'}</td>
+                              <td className="px-3 py-3">{line.instructions ?? '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  
+                  {prescription.additional_info && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                      <p className="text-sm text-yellow-800"><strong>Informasi Tambahan:</strong> {prescription.additional_info}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </section>
@@ -531,5 +617,6 @@ export default function PharmacyVisitPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
     </div>
+    </RoleProtectedRoute>
   );
 }

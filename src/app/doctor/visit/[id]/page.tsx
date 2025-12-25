@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { createSupabaseBrowserClient } from '@/lib/supabaseClient';
+import RoleProtectedRoute from '@/components/auth/RoleProtectedRoute';
+import DiagnosisInput from '@/components/diagnosis/DiagnosisInput';
+import PrescriptionInput, { PrescriptionData } from '@/components/prescription/PrescriptionInput';
 
 const DOCTOR_DEVICE_ID = process.env.NEXT_PUBLIC_DOCTOR_DEVICE_ID ?? "DOCTOR-001";
 const severityOptions = ["mild", "moderate", "severe", "unknown"] as const;
@@ -44,31 +47,10 @@ type VitalsDraft = {
 };
 
 type DiagnosisDraft = {
-  code: string;
-  description: string;
+  diagnosis_text: string;
   is_primary: boolean;
 };
 
-type PrescriptionDraft = {
-  drug_name: string;
-  medicine_id: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  instructions: string;
-};
-
-type Medicine = {
-  id: string;
-  name: string;
-  unit: string | null;
-};
-
-type ICD10Code = {
-  code: string;
-  title: string;
-  chapter: string | null;
-};
 
 type AllergyDraft = {
   allergen: string;
@@ -85,8 +67,15 @@ const defaultVitals: VitalsDraft = {
   spo2: "",
 };
 
-const defaultDiagnosis: DiagnosisDraft = { code: "", description: "", is_primary: true };
-const defaultPrescription: PrescriptionDraft = { drug_name: "", medicine_id: "", dosage: "", frequency: "", duration: "", instructions: "" };
+const defaultDiagnosis: DiagnosisDraft = { diagnosis_text: "", is_primary: true };
+const defaultPrescription: PrescriptionData = {
+  type: 'non_racik',
+  medicine_id: '',
+  medicine_name: '',
+  quantity: 1,
+  directions: '',
+  additional_info: ''
+};
 const defaultAllergy: AllergyDraft = { allergen: "", reaction: "", severity: "unknown" };
 
 export default function DoctorVisitPage({ params }: { params: Promise<{ id: string }> }) {
@@ -107,13 +96,9 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
   const [anamnesis, setAnamnesis] = useState("");
   const [therapy, setTherapy] = useState("");
   const [diagnoses, setDiagnoses] = useState<DiagnosisDraft[]>([{ ...defaultDiagnosis }]);
-  const [prescriptions, setPrescriptions] = useState<PrescriptionDraft[]>([{ ...defaultPrescription }]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionData[]>([{ ...defaultPrescription }]);
   const [allergyDrafts, setAllergyDrafts] = useState<AllergyDraft[]>([{ ...defaultAllergy }]);
   const [pharmacyNote, setPharmacyNote] = useState("");
-  const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [showMedicineDropdown, setShowMedicineDropdown] = useState<number | null>(null);
-  const [icd10Codes, setIcd10Codes] = useState<ICD10Code[]>([]);
-  const [showIcd10Dropdown, setShowIcd10Dropdown] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -183,77 +168,6 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  async function searchMedicines(query: string, index: number) {
-    if (query.length < 2) {
-      setMedicines([]);
-      setShowMedicineDropdown(null);
-      return;
-    }
-
-    setShowMedicineDropdown(index);
-
-    const { data, error } = await supabase
-      .from("medicines")
-      .select("id, name, unit")
-      .ilike("name", `%${query}%`)
-      .order("name")
-      .limit(10);
-
-    if (error) {
-      console.error("Medicine search error:", error);
-      setMedicines([]);
-    } else {
-      setMedicines(data ?? []);
-    }
-  }
-
-  function selectMedicine(index: number, medicine: Medicine) {
-    setPrescriptions((prev) =>
-      prev.map((item, idx) =>
-        idx === index
-          ? { ...item, drug_name: medicine.name, medicine_id: medicine.id }
-          : item
-      )
-    );
-    setMedicines([]);
-    setShowMedicineDropdown(null);
-  }
-
-  async function searchIcd10(query: string, index: number) {
-    if (query.length < 2) {
-      setIcd10Codes([]);
-      setShowIcd10Dropdown(null);
-      return;
-    }
-
-    setShowIcd10Dropdown(index);
-
-    const { data, error } = await supabase
-      .from("icd10_codes")
-      .select("code, title, chapter")
-      .or(`code.ilike.%${query}%,title.ilike.%${query}%`)
-      .order("code")
-      .limit(15);
-
-    if (error) {
-      console.error("ICD-10 search error:", error);
-      setIcd10Codes([]);
-    } else {
-      setIcd10Codes(data ?? []);
-    }
-  }
-
-  function selectIcd10(index: number, icd10: ICD10Code) {
-    setDiagnoses((prev) =>
-      prev.map((item, idx) =>
-        idx === index
-          ? { ...item, code: icd10.code, description: icd10.title }
-          : item
-      )
-    );
-    setIcd10Codes([]);
-    setShowIcd10Dropdown(null);
-  }
 
   function updateDiagnosis(index: number, field: keyof DiagnosisDraft, value: string | boolean) {
     setDiagnoses((prev) =>
@@ -268,8 +182,8 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  function updatePrescription(index: number, field: keyof PrescriptionDraft, value: string) {
-    setPrescriptions((prev) => prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
+  function updatePrescription(index: number, prescription: PrescriptionData) {
+    setPrescriptions((prev) => prev.map((item, idx) => (idx === index ? prescription : item)));
   }
 
   function updateAllergyDraft(index: number, field: keyof AllergyDraft, value: string) {
@@ -334,10 +248,9 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
     }
 
     const diagnosesPayload = diagnoses
-      .filter((d) => d.code.trim())
+      .filter((d) => d.diagnosis_text.trim())
       .map((d) => ({
-        code: d.code.trim(),
-        description: d.description.trim(),
+        diagnosis_text: d.diagnosis_text.trim(),
         is_primary: d.is_primary,
       }));
     if (diagnosesPayload.length > 0) {
@@ -349,14 +262,28 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
 
   function buildPrescriptionPayload() {
     return prescriptions
-      .filter((p) => p.drug_name.trim())
+      .filter((p) => {
+        if (p.type === 'non_racik') {
+          return p.medicine_name.trim();
+        } else {
+          return p.sediaan.trim() && p.ingredients.some(ing => ing.medicine_name.trim());
+        }
+      })
       .map((p) => ({
-        drug_name: p.drug_name.trim(),
-        medicine_id: p.medicine_id || null,
-        dosage: p.dosage.trim() || null,
-        frequency: p.frequency.trim() || null,
-        duration: p.duration.trim() || null,
-        instructions: p.instructions.trim() || null,
+        type: p.type,
+        medicine_id: p.type === 'non_racik' ? (p.medicine_id || null) : null,
+        medicine_name: p.type === 'non_racik' ? p.medicine_name.trim() : null,
+        quantity: p.quantity,
+        directions: p.directions.trim() || null,
+        additional_info: p.additional_info.trim() || null,
+        // Racik-specific fields
+        sediaan: p.type === 'racik' ? p.sediaan.trim() : null,
+        ingredients: p.type === 'racik' ? p.ingredients.filter(ing => ing.medicine_name.trim()).map(ing => ({
+          medicine_id: ing.medicine_id || null,
+          medicine_name: ing.medicine_name.trim(),
+          dosage: ing.dosage.trim() || null,
+          unit: ing.unit
+        })) : null
       }));
   }
 
@@ -431,7 +358,8 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <RoleProtectedRoute requiredRoles={['doctor']}>
+      <div className="min-h-screen bg-slate-50 p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div className="flex items-center gap-3 text-sm text-slate-500">
           <Link href="/doctor/queue" className="font-medium text-emerald-600 hover:underline">
@@ -553,192 +481,45 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
           <div className="space-y-6">
             <div className="rounded-2xl bg-white p-5 shadow">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900">Diagnosa (ICD-10)</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Diagnosis</h3>
                 <button type="button" onClick={addDiagnosis} className="text-sm font-medium text-emerald-600 hover:underline">
-                  + Tambah diagnosa
+                  + Tambah Diagnosis
                 </button>
               </div>
-              <div className="mt-4 space-y-4 text-sm">
-                {diagnoses.map((diag, index) => (
-                  <div key={`diag-${index}`} className="rounded-lg border border-slate-200 p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Diagnosa #{index + 1}</p>
-                      {diagnoses.length > 1 && (
-                        <button type="button" onClick={() => removeDiagnosis(index)} className="text-xs text-red-500 hover:underline">
-                          Hapus
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div className="relative">
-                        <label className="text-xs font-medium text-slate-500">Kode ICD-10</label>
-                        <input
-                          type="text"
-                          value={diag.code}
-                          onChange={(e) => {
-                            updateDiagnosis(index, "code", e.target.value.toUpperCase());
-                            searchIcd10(e.target.value, index);
-                          }}
-                          onFocus={() => diag.code.length >= 2 && searchIcd10(diag.code, index)}
-                          onBlur={() => setTimeout(() => setShowIcd10Dropdown(null), 200)}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                          placeholder="Ketik kode atau nama penyakit..."
-                          autoComplete="off"
-                        />
-                        {showIcd10Dropdown === index && (
-                          <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
-                            {icd10Codes.length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-slate-400">
-                                Tidak ada kode ICD-10 ditemukan. Tambahkan di database.
-                              </div>
-                            ) : (
-                              icd10Codes.map((icd) => (
-                                <button
-                                  key={icd.code}
-                                  type="button"
-                                  onClick={() => selectIcd10(index, icd)}
-                                  className="w-full px-3 py-2 text-left hover:bg-emerald-50 text-sm border-b border-slate-100 last:border-0"
-                                >
-                                  <span className="font-semibold text-emerald-700">{icd.code}</span>
-                                  <span className="ml-2 text-slate-600">{icd.title}</span>
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-500">Utama?</label>
-                        <select
-                          value={diag.is_primary ? "true" : "false"}
-                          onChange={(e) => updateDiagnosis(index, "is_primary", e.target.value === "true")}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                        >
-                          <option value="true">Ya</option>
-                          <option value="false">Tidak</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <label className="text-xs font-medium text-slate-500">Deskripsi (auto-filled)</label>
-                      <textarea
-                        rows={2}
-                        value={diag.description}
-                        onChange={(e) => updateDiagnosis(index, "description", e.target.value)}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 bg-slate-50"
-                        placeholder="Akan terisi otomatis dari kode ICD-10"
-                        readOnly
-                      />
-                    </div>
-                  </div>
+              <div className="mt-4 space-y-4">
+                {diagnoses.map((diagnosis, index) => (
+                  <DiagnosisInput
+                    key={`diagnosis-${index}`}
+                    value={diagnosis.diagnosis_text}
+                    onChange={(value) => updateDiagnosis(index, 'diagnosis_text', value)}
+                    isPrimary={diagnosis.is_primary}
+                    onPrimaryChange={(isPrimary) => updateDiagnosis(index, 'is_primary', isPrimary)}
+                    label={`Diagnosis ${index + 1}`}
+                    placeholder="Ketik diagnosis..."
+                    onRemove={diagnoses.length > 1 ? () => removeDiagnosis(index) : undefined}
+                    showRemove={diagnoses.length > 1}
+                  />
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white p-5 shadow">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900">Resep</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">Resep Obat</h3>
                 <button type="button" onClick={addPrescription} className="text-sm font-medium text-emerald-600 hover:underline">
-                  + Tambah obat
+                  + Tambah Resep
                 </button>
               </div>
-              <div className="mt-4 space-y-4 text-sm">
-                {prescriptions.map((rx, index) => (
-                  <div key={`rx-${index}`} className="rounded-lg border border-slate-200 p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Obat #{index + 1}</p>
-                      {prescriptions.length > 1 && (
-                        <button type="button" onClick={() => removePrescription(index)} className="text-xs text-red-500 hover:underline">
-                          Hapus
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div className="relative">
-                        <label className="text-xs font-medium text-slate-500">Nama obat</label>
-                        <input
-                          type="text"
-                          value={rx.drug_name}
-                          onChange={(e) => {
-                            updatePrescription(index, "drug_name", e.target.value);
-                            searchMedicines(e.target.value, index);
-                          }}
-                          onFocus={() => rx.drug_name.length >= 2 && searchMedicines(rx.drug_name, index)}
-                          onBlur={() => setTimeout(() => setShowMedicineDropdown(null), 200)}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                          placeholder="Ketik nama obat..."
-                          autoComplete="off"
-                        />
-                        {showMedicineDropdown === index && (
-                          <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-48 overflow-y-auto">
-                            {medicines.length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-slate-400">
-                                Tidak ada obat ditemukan. Tambahkan obat di menu Admin → Inventori.
-                              </div>
-                            ) : (
-                              medicines.map((medicine) => (
-                                <button
-                                  key={medicine.id}
-                                  type="button"
-                                  onClick={() => selectMedicine(index, medicine)}
-                                  className="w-full px-3 py-2 text-left hover:bg-emerald-50 text-sm flex justify-between items-center"
-                                >
-                                  <span className="font-medium text-slate-800">{medicine.name}</span>
-                                  {medicine.unit && (
-                                    <span className="text-xs text-slate-500">{medicine.unit}</span>
-                                  )}
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-500">Dosis</label>
-                        <input
-                          type="text"
-                          value={rx.dosage}
-                          onChange={(e) => updatePrescription(index, "dosage", e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                          placeholder="500 mg"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-3 grid grid-cols-3 gap-3">
-                      <label className="text-xs font-medium text-slate-500">
-                        Frekuensi
-                        <input
-                          type="text"
-                          value={rx.frequency}
-                          onChange={(e) => updatePrescription(index, "frequency", e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                          placeholder="3x sehari"
-                        />
-                      </label>
-                      <label className="text-xs font-medium text-slate-500">
-                        Durasi
-                        <input
-                          type="text"
-                          value={rx.duration}
-                          onChange={(e) => updatePrescription(index, "duration", e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                          placeholder="5 hari"
-                        />
-                      </label>
-                      <label className="text-xs font-medium text-slate-500">
-                        Instruksi
-                        <input
-                          type="text"
-                          value={rx.instructions}
-                          onChange={(e) => updatePrescription(index, "instructions", e.target.value)}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2"
-                          placeholder="Sesudah makan"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {prescriptions.map((prescription, index) => (
+                <PrescriptionInput
+                  key={`prescription-${index}`}
+                  value={prescription}
+                  onChange={(updatedPrescription) => updatePrescription(index, updatedPrescription)}
+                  onRemove={prescriptions.length > 1 ? () => removePrescription(index) : undefined}
+                  showRemove={prescriptions.length > 1}
+                  index={index}
+                />
+              ))}
             </div>
 
             <div className="rounded-2xl bg-white p-5 shadow">
@@ -833,5 +614,6 @@ export default function DoctorVisitPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
     </div>
+    </RoleProtectedRoute>
   );
 }
