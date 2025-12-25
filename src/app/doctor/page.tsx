@@ -1,33 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import Layout from '@/components/ui/Layout';
+import RoleProtectedRoute from '@/components/auth/RoleProtectedRoute';
 
 const DOCTOR_DEVICE_ID = process.env.NEXT_PUBLIC_DOCTOR_DEVICE_ID ?? 'DOCTOR-001';
 
 export default function DoctorPage() {
-  const { user, loading, signOut } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/doctor/login');
-    }
-  }, [loading, user, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="text-xl">Memuat...</div>
-      </div>
-    );
-  }
+  const { signOut } = useAuth();
 
   return (
-    <Layout title="Dashboard Dokter" subtitle="Ringkasan antrian dan kunjungan hari ini">
+    <RoleProtectedRoute requiredRoles={['doctor']}>
+      <Layout title="Dashboard Dokter" subtitle="Ringkasan antrian dan kunjungan hari ini">
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -142,5 +127,6 @@ export default function DoctorPage() {
         </div>
       </div>
     </Layout>
+    </RoleProtectedRoute>
   );
 }

@@ -1,33 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import Layout from '@/components/ui/Layout';
+import RoleProtectedRoute from '@/components/auth/RoleProtectedRoute';
 
 const PHARMACY_DEVICE_ID = process.env.NEXT_PUBLIC_PHARMACY_DEVICE_ID ?? 'PHARMACY-001';
 
 export default function PharmacyPage() {
-  const { user, loading, signOut } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/pharmacy/login');
-    }
-  }, [loading, user, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
+  const { signOut } = useAuth();
 
   return (
-    <Layout title="Dashboard Farmasi" subtitle="Penyiapan obat dan proses pembayaran">
+    <RoleProtectedRoute requiredRoles={['pharmacist']}>
+      <Layout title="Dashboard Farmasi" subtitle="Penyiapan obat dan proses pembayaran">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Quick Stats */}
         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -185,5 +170,6 @@ export default function PharmacyPage() {
         </div>
       </div>
     </Layout>
+    </RoleProtectedRoute>
   );
 }

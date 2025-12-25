@@ -1,30 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
 import Layout from '@/components/ui/Layout';
+import RoleProtectedRoute from '@/components/auth/RoleProtectedRoute';
 
 const ADMIN_DEVICE_ID = process.env.NEXT_PUBLIC_ADMIN_DEVICE_ID ?? 'ADMIN-001';
 
 export default function AdminPage() {
-  const { user, loading, signOut } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/admin/login');
-    }
-  }, [loading, user, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
+  const { signOut } = useAuth();
 
   const adminMenus = [
     { title: 'Manajemen Perangkat', href: '/admin/devices', icon: '📱', description: 'Kelola perangkat dan akses klinik' },
@@ -37,7 +21,8 @@ export default function AdminPage() {
   ];
 
   return (
-    <Layout title="Dashboard Admin" subtitle="Manajemen dan pengawasan sistem lengkap">
+    <RoleProtectedRoute requiredRoles={['admin']}>
+      <Layout title="Dashboard Admin" subtitle="Manajemen dan pengawasan sistem lengkap">
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -180,5 +165,6 @@ export default function AdminPage() {
         </div>
       </div>
     </Layout>
+    </RoleProtectedRoute>
   );
 }
