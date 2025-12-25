@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import { getCurrentPortalDeviceId, type PortalType } from './device/portalDevice';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -21,12 +22,44 @@ const createSafeClient = (headers?: Record<string, string>) => {
   });
 };
 
-// Default client for auth operations
+// Default client for auth operations (no device headers needed)
 export const supabase = createSafeClient();
 
-// Create client with custom headers (e.g., x-device-id) while preserving auth session
+/**
+ * Create Supabase client with device identity headers
+ * Automatically includes x-device-id based on current portal context
+ */
 export const createSupabaseBrowserClient = (
-  headers?: Record<string, string>,
+  additionalHeaders?: Record<string, string>,
 ) => {
+  const deviceId = getCurrentPortalDeviceId();
+  const headers: Record<string, string> = {
+    ...(additionalHeaders ?? {}),
+  };
+  
+  // Add device ID header if we can detect current portal
+  if (deviceId) {
+    headers['x-device-id'] = deviceId;
+  }
+  
+  return createSafeClient(headers);
+};
+
+/**
+ * Create Supabase client with specific portal device identity
+ * Use this when you need to explicitly specify the portal context
+ */
+export const createPortalSupabaseClient = (
+  portal: PortalType,
+  additionalHeaders?: Record<string, string>,
+) => {
+  const { getPortalDeviceId } = require('./device/portalDevice');
+  const deviceId = getPortalDeviceId(portal);
+  
+  const headers: Record<string, string> = {
+    'x-device-id': deviceId,
+    ...(additionalHeaders ?? {}),
+  };
+  
   return createSafeClient(headers);
 };

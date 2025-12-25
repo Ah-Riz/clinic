@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { useRoles } from '@/lib/auth/RolesProvider';
+import { handleLoginRedirect } from '@/lib/auth/loginRedirect';
 import LoginForm from '@/components/LoginForm';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +15,8 @@ import Layout from '@/components/ui/Layout';
 
 export default function KioskPage() {
   const { user, loading, signOut } = useAuth();
+  const { primaryRole, rolesLoading } = useRoles();
+  const router = useRouter();
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [queueNumber, setQueueNumber] = useState<number | null>(null);
   const [nik, setNik] = useState('');
@@ -76,61 +81,9 @@ export default function KioskPage() {
   }
 
   if (!user) {
-    return (
-      <>
-        <Layout title="Login Kiosk" subtitle="Akses sistem pendaftaran pasien">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <Card variant="elevated" className="max-w-md w-full">
-              <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Login Kiosk Diperlukan
-                </h2>
-                <p className="text-gray-600">
-                  Silakan masuk untuk mengakses pendaftaran pasien
-                </p>
-              </div>
-              <LoginForm role="kiosk" />
-            </Card>
-          </div>
-        </Layout>
-        
-        {/* Logout Confirmation Modal */}
-        {showLogoutConfirm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Card variant="elevated" className="max-w-sm w-full mx-4">
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Keluar Sistem?</h3>
-                <p className="text-sm text-gray-600">Anda akan keluar dari sistem kiosk. Pastikan tidak ada aktivitas yang sedang berlangsung.</p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={() => signOut()}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-                >
-                  Keluar
-                </button>
-              </div>
-            </Card>
-          </div>
-        )}
-      </>
-    );
+    // Redirect unauthenticated users to login page
+    router.push('/kiosk/login');
+    return null;
   }
 
   if (registrationComplete && queueNumber) {

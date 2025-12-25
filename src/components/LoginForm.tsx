@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
+import { User } from '@supabase/supabase-js';
 
 interface LoginFormProps {
   role?: string;
-  onSuccess?: () => void;
+  onSuccess?: (user: User) => void;
 }
 
 export default function LoginForm({ role, onSuccess }: LoginFormProps) {
@@ -13,7 +14,7 @@ export default function LoginForm({ role, onSuccess }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +27,9 @@ export default function LoginForm({ role, onSuccess }: LoginFormProps) {
       setError(error.message || 'Login gagal');
       setLoading(false);
     } else {
-      if (onSuccess) onSuccess();
+      // Login successful, onSuccess will be called by useEffect in parent component
+      // when user state updates in AuthContext
+      setLoading(false);
     }
   };
 

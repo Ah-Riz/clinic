@@ -7,7 +7,10 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRoleAuth, getPrimaryRole, ROLE_LABELS } from '@/lib/auth/useRoleAuth';
+import { getPrimaryRole, ROLE_LABELS } from '@/lib/auth/useRoleAuth';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { useRoles } from '@/lib/auth/RolesProvider';
+import NotProvisionedUser from './NotProvisionedUser';
 
 type UserRole = 'admin' | 'doctor' | 'pharmacist' | 'kiosk';
 
@@ -30,11 +33,12 @@ export default function RoleProtectedRoute({
   fallbackPath,
   customUnauthorized
 }: RoleProtectedRouteProps) {
-  const { userRoles, hasRole, hasAllRoles, loading, error } = useRoleAuth();
+  const { user, signOut } = useAuth();
+  const { userRoles, hasRole, hasAllRoles, rolesLoading, rolesError } = useRoles();
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return;
+    if (rolesLoading) return;
 
     const hasAccess = requireAll 
       ? hasAllRoles(requiredRoles)
@@ -70,15 +74,19 @@ export default function RoleProtectedRoute({
               else router.replace('/'); // Only if no roles found (shouldn't happen)
           }
         }
+      } else if (user) {
+        // User is authenticated but has no roles - this is the "not provisioned" state
+        // Don't redirect - show the NotProvisionedUser component instead
+        return;
       } else {
         // User not authenticated - redirect to home page automatically
         router.replace('/');
       }
     }
-  }, [userRoles, loading, hasRole, hasAllRoles, requiredRoles, requireAll, fallbackPath, router]);
+  }, [userRoles, rolesLoading, hasRole, hasAllRoles, requiredRoles, requireAll, fallbackPath, router, user]);
 
   // Loading state
-  if (loading) {
+  if (rolesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -90,13 +98,13 @@ export default function RoleProtectedRoute({
   }
 
   // Error state
-  if (error) {
+  if (rolesError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h1 className="text-xl font-semibold text-gray-900 mb-2">Terjadi Kesalahan</h1>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-gray-600 mb-4">{rolesError}</p>
           <button 
             onClick={() => window.location.reload()} 
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -108,12 +116,22 @@ export default function RoleProtectedRoute({
     );
   }
 
-  // Check access - if no access, user will be automatically redirected by useEffect
+  // Check access - handle different states appropriately
   const hasAccess = requireAll 
     ? hasAllRoles(requiredRoles)
     : hasRole(requiredRoles);
 
   if (!hasAccess) {
+    // Check if user is authenticated but not provisioned (has no roles)
+    if (user && userRoles.length === 0 && !rolesError) {
+      return (
+        <NotProvisionedUser 
+          userEmail={user.email || undefined}
+          onSignOut={signOut}
+        />
+      );
+    }
+    
     // Show loading while automatic redirect happens - NO BUTTONS, NO USER INTERACTION
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

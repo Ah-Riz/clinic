@@ -21,7 +21,7 @@ type StaffRole = {
   role: string;
 };
 
-const ROLE_OPTIONS = ['doctor', 'pharmacist', 'admin'] as const;
+const ROLE_OPTIONS = ['doctor', 'pharmacist', 'admin', 'kiosk'] as const;
 
 export default function AdminUsersPage() {
   const { user, loading } = useAuth();
@@ -144,6 +144,8 @@ export default function AdminUsersPage() {
         return 'bg-green-100 text-green-700';
       case 'admin':
         return 'bg-purple-100 text-purple-700';
+      case 'kiosk':
+        return 'bg-cyan-100 text-cyan-700';
       default:
         return 'bg-slate-100 text-slate-700';
     }
@@ -157,6 +159,8 @@ export default function AdminUsersPage() {
         return 'Apoteker';
       case 'admin':
         return 'Admin';
+      case 'kiosk':
+        return 'Kiosk';
       default:
         return role;
     }

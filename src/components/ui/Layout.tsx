@@ -16,7 +16,7 @@ export default function Layout({ children, title, subtitle, showBack = false }: 
   
   const navigation = [
     { name: 'Beranda', href: '/', icon: '🏠' },
-    { name: 'Kiosk', href: '/kiosk', icon: '📝' },
+    { name: 'Kiosk', href: '/kiosk/login', match: '/kiosk', icon: '📝' },
     { name: 'Dokter', href: '/doctor/login', match: '/doctor', icon: '👨‍⚕️' },
     { name: 'Farmasi', href: '/pharmacy/login', match: '/pharmacy', icon: '💊' },
     { name: 'Admin', href: '/admin/login', match: '/admin', icon: '⚙️' },
