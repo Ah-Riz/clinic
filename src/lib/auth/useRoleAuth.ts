@@ -42,11 +42,11 @@ export function useRoleAuth(): RoleAuthResult {
       try {
         const supabase = createSupabaseBrowserClient();
         
-        // First, get staff record by user_id
+        // First, get staff record by id (staff.id = auth.users.id)
         const { data: staffData, error: staffError } = await supabase
           .from('staff')
           .select('id')
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .eq('active', true)
           .maybeSingle();
 
